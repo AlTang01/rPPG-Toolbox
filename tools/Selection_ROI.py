@@ -28,6 +28,28 @@ ROI_BOXES = {
         (0.42, 0.32, 0.58, 0.55),
     ],
 
+    # ROI inspirée de Zhao et al. (2024)
+    # "Toward Motion Robustness: A Masked Attention Regularization Framework
+    # in Remote Photoplethysmography"
+    #
+    # Idée adaptée aux méthodes classiques :
+    # - utiliser plusieurs zones symétriques du visage ;
+    # - garder les régions stables : front, glabella, joues/malars ;
+    # - éviter les zones plus bruitées : yeux, bouche, menton ;
+    # - rendre la sélection plus robuste aux mouvements légers.
+    #
+    # Attention : ce n'est pas une reproduction complète de MAR-rPPG,
+    # car l'article utilise un modèle deep learning avec attention maps.
+    "zhao2024_motion_robust": [
+        (0.34, 0.06, 0.66, 0.22),  # front médial
+        (0.14, 0.08, 0.34, 0.26),  # front latéral gauche
+        (0.66, 0.08, 0.86, 0.26),  # front latéral droit
+        (0.42, 0.22, 0.58, 0.36),  # glabella
+        (0.16, 0.38, 0.43, 0.68),  # joue / malar gauche
+        (0.57, 0.38, 0.84, 0.68),  # joue / malar droit
+        (0.42, 0.32, 0.58, 0.54),  # haut du nez
+    ],
+
     # TOP-5 regions rapportées dans :
     # Bondarenko, Menon & Elgendi (2025),
     # "The role of face regions in remote photoplethysmography for contactless heart rate monitoring"
