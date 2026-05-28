@@ -1,5 +1,7 @@
 """Unsupervised learning methods including POS, GREEN, CHROME, ICA, LGI and PBV."""
+import os
 import numpy as np
+from tools.Selection_ROI import apply_roi_to_frames
 from evaluation.post_process import *
 from unsupervised_methods.methods.CHROME_DEHAAN import *
 from unsupervised_methods.methods.GREEN import *
@@ -16,6 +18,8 @@ def unsupervised_predict(config, data_loader, method_name):
     if data_loader["unsupervised"] is None:
         raise ValueError("No data for unsupervised method predicting")
     print("===Unsupervised Method ( " + method_name + " ) Predicting ===")
+    roi_name = os.environ.get("RPPG_ROI", "full_face")
+    print(f"ROI selected: {roi_name}")
     predict_hr_peak_all = []
     gt_hr_peak_all = []
     predict_hr_fft_all = []
@@ -28,6 +32,7 @@ def unsupervised_predict(config, data_loader, method_name):
         for idx in range(batch_size):
             data_input, labels_input = test_batch[0][idx].cpu().numpy(), test_batch[1][idx].cpu().numpy()
             data_input = data_input[..., :3]
+            data_input = apply_roi_to_frames(data_input, roi_name)
             if method_name == "POS":
                 BVP = POS_WANG(data_input, config.UNSUPERVISED.DATA.FS)
             elif method_name == "CHROM":
@@ -81,7 +86,7 @@ def unsupervised_predict(config, data_loader, method_name):
 
     # Filename ID to be used in any results files (e.g., Bland-Altman plots) that get saved
     if config.TOOLBOX_MODE == 'unsupervised_method':
-        filename_id = method_name + "_" + config.UNSUPERVISED.DATA.DATASET
+        filename_id = method_name + "_" + config.UNSUPERVISED.DATA.DATASET + "_" + roi_name
     else:
         raise ValueError('unsupervised_predictor.py evaluation only supports unsupervised_method!')
 
