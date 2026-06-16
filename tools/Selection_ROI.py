@@ -12,7 +12,7 @@ ROI_BOXES = {
     # Bondarenko, Menon & Elgendi (2025),
     # "The role of face regions in remote photoplethysmography for contactless heart rate monitoring"
     "forehead": [
-        (0.20, 0.05, 0.80, 0.30),
+       (0.20, 0.05, 0.80, 0.30),
     ],
 
     "cheeks": [
@@ -83,6 +83,24 @@ ROI_BOXES = {
     ],
 }
 
+ROI_ALIASES = {
+    "zhao2024": "zhao2024_motion_robust",
+    "zhao": "zhao2024_motion_robust",
+    "li2024": "li2024_extended",
+    "li": "li2024_extended",
+    "elgendi2024": "li2024_extended",
+    "menon2024": "li2024_extended",
+    "bondarenko2025": "bondarenko2025_top5",
+    "bondarenko": "bondarenko2025_top5",
+}
+
+
+def resolve_roi_name(roi_name):
+    """Normalise un nom de ROI (ex. zhao2024 -> zhao2024_motion_robust)."""
+    if roi_name is None or roi_name == "":
+        return "full_face"
+    return ROI_ALIASES.get(roi_name, roi_name)
+
 
 def apply_roi_to_frames(frames, roi_name="full_face", out_size=64):
     """
@@ -92,7 +110,9 @@ def apply_roi_to_frames(frames, roi_name="full_face", out_size=64):
     Si plusieurs ROI sont demandées, elles sont redimensionnées puis concaténées.
     """
 
-    if roi_name == "full_face" or roi_name is None:
+    roi_name = resolve_roi_name(roi_name)
+
+    if roi_name == "full_face":
         return frames
 
     if roi_name not in ROI_BOXES:
@@ -131,3 +151,43 @@ def apply_roi_to_frames(frames, roi_name="full_face", out_size=64):
 
     # Plusieurs ROI : concaténation horizontale des régions sélectionnées.
     return np.concatenate(roi_clips, axis=2)
+
+
+def apply_roi_to_ndchw_clip(clip, roi_name="full_face", out_size=64, target_size=72):
+    """
+    Applique une ROI à un clip DeepPhys (D, C, H, W), puis redimensionne en carré.
+
+    Les modèles du toolbox (DeepPhys, etc.) attendent une entrée carrée (ex. 72x72).
+  """
+    import cv2
+
+    roi_name = resolve_roi_name(roi_name)
+    if roi_name == "full_face":
+        return clip
+
+    frames = np.transpose(clip, (0, 2, 3, 1))
+    roi_frames = apply_roi_to_frames(frames, roi_name, out_size=out_size)
+    resized = np.stack(
+        [
+            cv2.resize(
+                frame,
+                (target_size, target_size),
+                interpolation=cv2.INTER_AREA,
+            )
+            for frame in roi_frames
+        ]
+    )
+    return np.transpose(resized, (0, 3, 1, 2))
+
+
+def apply_roi_to_ndchw_batch(batch, roi_name="full_face", out_size=64, target_size=72):
+    """batch: (N, D, C, H, W) numpy array."""
+    roi_name = resolve_roi_name(roi_name)
+    if roi_name == "full_face":
+        return batch
+    out = np.empty_like(batch)
+    for n in range(batch.shape[0]):
+        out[n] = apply_roi_to_ndchw_clip(
+            batch[n], roi_name, out_size=out_size, target_size=target_size
+        )
+    return out

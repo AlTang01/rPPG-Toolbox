@@ -11,6 +11,8 @@ from evaluation.metrics import calculate_metrics
 from neural_methods.loss.NegPearsonLoss import Neg_Pearson
 from neural_methods.model.DeepPhys import DeepPhys
 from neural_methods.trainer.BaseTrainer import BaseTrainer
+from tools.roi_dl import init_dl_roi
+from tools.roi_dl import maybe_apply_roi_ndchw
 from tqdm import tqdm
 
 
@@ -28,7 +30,10 @@ class DeepPhysTrainer(BaseTrainer):
         self.config = config
         self.min_valid_loss = None
         self.best_epoch = 0
-        
+        self.roi_name, self.roi_patch_size, self.roi_target_size = init_dl_roi(
+            config, "DeepPhys"
+        )
+
         if config.TOOLBOX_MODE == "train_and_test":
             self.model = DeepPhys(img_size=config.TRAIN.DATA.PREPROCESS.RESIZE.H).to(self.device)
             self.model = torch.nn.DataParallel(self.model, device_ids=list(range(config.NUM_OF_GPU_TRAIN)))
@@ -66,6 +71,9 @@ class DeepPhysTrainer(BaseTrainer):
                 tbar.set_description("Train epoch %s" % epoch)
                 data, labels = batch[0].to(
                     self.device), batch[1].to(self.device)
+                data = maybe_apply_roi_ndchw(
+                    data, self.roi_name, self.roi_patch_size, self.roi_target_size
+                )
                 N, D, C, H, W = data.shape
                 data = data.view(N * D, C, H, W)
                 labels = labels.view(-1, 1)
@@ -124,6 +132,12 @@ class DeepPhysTrainer(BaseTrainer):
                 vbar.set_description("Validation")
                 data_valid, labels_valid = valid_batch[0].to(
                     self.device), valid_batch[1].to(self.device)
+                data_valid = maybe_apply_roi_ndchw(
+                    data_valid,
+                    self.roi_name,
+                    self.roi_patch_size,
+                    self.roi_target_size,
+                )
                 N, D, C, H, W = data_valid.shape
                 data_valid = data_valid.view(N * D, C, H, W)
                 labels_valid = labels_valid.view(-1, 1)
@@ -176,6 +190,12 @@ class DeepPhysTrainer(BaseTrainer):
                 batch_size = test_batch[0].shape[0]
                 data_test, labels_test = test_batch[0].to(
                     self.config.DEVICE), test_batch[1].to(self.config.DEVICE)
+                data_test = maybe_apply_roi_ndchw(
+                    data_test,
+                    self.roi_name,
+                    self.roi_patch_size,
+                    self.roi_target_size,
+                )
                 N, D, C, H, W = data_test.shape
                 data_test = data_test.view(N * D, C, H, W)
                 labels_test = labels_test.view(-1, 1)

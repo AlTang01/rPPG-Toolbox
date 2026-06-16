@@ -12,6 +12,7 @@ from unsupervised_methods.methods.POS_WANG import *
 from unsupervised_methods.methods.OMIT import *
 from tqdm import tqdm
 from evaluation.BlandAltmanPy import BlandAltman
+from evaluation.run_summary import save_run_summary
 
 def unsupervised_predict(config, data_loader, method_name):
     """ Model evaluation on the testing dataset."""
@@ -142,6 +143,13 @@ def unsupervised_predict(config, data_loader, method_name):
                     file_name=f'{filename_id}_Peak_BlandAltman_DifferencePlot.pdf')
             else:
                 raise ValueError("Wrong Test Metric Type")
+        save_run_summary(
+            config=config,
+            gt_hr=gt_hr_peak_all,
+            pred_hr=predict_hr_peak_all,
+            snr_mean=SNR_all,
+            method=method_name,
+        )
     elif config.INFERENCE.EVALUATION_METHOD == "FFT":
         predict_hr_fft_all = np.array(predict_hr_fft_all)
         gt_hr_fft_all = np.array(gt_hr_fft_all)
@@ -194,5 +202,12 @@ def unsupervised_predict(config, data_loader, method_name):
                     file_name=f'{filename_id}_FFT_BlandAltman_DifferencePlot.pdf')
             else:
                 raise ValueError("Wrong Test Metric Type")
+        save_run_summary(
+            config=config,
+            gt_hr=gt_hr_fft_all,
+            pred_hr=predict_hr_fft_all,
+            snr_mean=SNR_all,
+            method=method_name,
+        )
     else:
         raise ValueError("Inference evaluation method name wrong!")

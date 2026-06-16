@@ -9,6 +9,8 @@ from evaluation.metrics import calculate_metrics
 from neural_methods.loss.PhysNetNegPearsonLoss import Neg_Pearson
 from neural_methods.model.PhysNet import PhysNet_padding_Encoder_Decoder_MAX
 from neural_methods.trainer.BaseTrainer import BaseTrainer
+from tools.roi_dl import init_dl_roi
+from tools.roi_dl import maybe_apply_roi_ncdhw
 from torch.autograd import Variable
 from tqdm import tqdm
 
@@ -28,6 +30,9 @@ class PhysnetTrainer(BaseTrainer):
         self.config = config
         self.min_valid_loss = None
         self.best_epoch = 0
+        self.roi_name, self.roi_patch_size, self.roi_target_size = init_dl_roi(
+            config, "PhysNet"
+        )
 
         self.model = PhysNet_padding_Encoder_Decoder_MAX(
             frames=config.MODEL.PHYSNET.FRAME_NUM).to(self.device)  # [3, T, 128,128]
@@ -62,8 +67,13 @@ class PhysnetTrainer(BaseTrainer):
             tbar = tqdm(data_loader["train"], ncols=80)
             for idx, batch in enumerate(tbar):
                 tbar.set_description("Train epoch %s" % epoch)
-                rPPG, x_visual, x_visual3232, x_visual1616 = self.model(
-                    batch[0].to(torch.float32).to(self.device))
+                data = maybe_apply_roi_ncdhw(
+                    batch[0].to(torch.float32).to(self.device),
+                    self.roi_name,
+                    self.roi_patch_size,
+                    self.roi_target_size,
+                )
+                rPPG, x_visual, x_visual3232, x_visual1616 = self.model(data)
                 BVP_label = batch[1].to(
                     torch.float32).to(self.device)
                 rPPG = (rPPG - torch.mean(rPPG)) / torch.std(rPPG)  # normalize
@@ -124,8 +134,13 @@ class PhysnetTrainer(BaseTrainer):
                 vbar.set_description("Validation")
                 BVP_label = valid_batch[1].to(
                     torch.float32).to(self.device)
-                rPPG, x_visual, x_visual3232, x_visual1616 = self.model(
-                    valid_batch[0].to(torch.float32).to(self.device))
+                data_valid = maybe_apply_roi_ncdhw(
+                    valid_batch[0].to(torch.float32).to(self.device),
+                    self.roi_name,
+                    self.roi_patch_size,
+                    self.roi_target_size,
+                )
+                rPPG, x_visual, x_visual3232, x_visual1616 = self.model(data_valid)
                 rPPG = (rPPG - torch.mean(rPPG)) / torch.std(rPPG)  # normalize
                 BVP_label = (BVP_label - torch.mean(BVP_label)) / \
                             torch.std(BVP_label)  # normalize
@@ -174,6 +189,12 @@ class PhysnetTrainer(BaseTrainer):
                 batch_size = test_batch[0].shape[0]
                 data, label = test_batch[0].to(
                     self.config.DEVICE), test_batch[1].to(self.config.DEVICE)
+                data = maybe_apply_roi_ncdhw(
+                    data.to(torch.float32),
+                    self.roi_name,
+                    self.roi_patch_size,
+                    self.roi_target_size,
+                )
                 pred_ppg_test, _, _, _ = self.model(data)
 
                 if self.config.TEST.OUTPUT_SAVE_DIR:

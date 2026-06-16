@@ -9,8 +9,13 @@ store_model
 store_physnet_model
 PreprocessedData
 PreTrainedModels
+runs/
 runs
 temp
+model_outputs/
+final_model_release/
+*.log
+!docs/**/*.log
 facial_region_test.py
 interp_test.py
 debug_utils.py

@@ -5,8 +5,7 @@ Petit outil à part du reste du projet : filmer le visage avec la webcam, estime
 ## Fichiers
 
 - `webcam_rppg_live.py` — script principal
-- `garmin_ble_reader.py` — lecture de la montre
-- `test_garmin_ble_hr.py` — test Garmin seul, sans webcam
+- Option `--garmin` : nécessite `garmin_ble_reader.py` (non inclus dans la version allégée du dépôt)
 
 ## Utilisation
 

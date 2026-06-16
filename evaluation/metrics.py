@@ -4,6 +4,7 @@ import torch
 from evaluation.post_process import *
 from tqdm import tqdm
 from evaluation.BlandAltmanPy import BlandAltman
+from evaluation.run_summary import save_run_summary
 
 def read_label(dataset):
     """Read manually corrected labels."""
@@ -159,6 +160,13 @@ def calculate_metrics(predictions, labels, config):
                     file_name=f'{filename_id}_FFT_BlandAltman_DifferencePlot.pdf')
             else:
                 raise ValueError("Wrong Test Metric Type")
+        save_run_summary(
+            config=config,
+            gt_hr=gt_hr_fft_all,
+            pred_hr=predict_hr_fft_all,
+            snr_mean=SNR_all,
+            method=config.MODEL.NAME,
+        )
     elif config.INFERENCE.EVALUATION_METHOD == "peak detection":
         gt_hr_peak_all = np.array(gt_hr_peak_all)
         predict_hr_peak_all = np.array(predict_hr_peak_all)
@@ -213,5 +221,12 @@ def calculate_metrics(predictions, labels, config):
                     file_name=f'{filename_id}_Peak_BlandAltman_DifferencePlot.pdf')
             else:
                 raise ValueError("Wrong Test Metric Type")
+        save_run_summary(
+            config=config,
+            gt_hr=gt_hr_peak_all,
+            pred_hr=predict_hr_peak_all,
+            snr_mean=SNR_all,
+            method=config.MODEL.NAME,
+        )
     else:
         raise ValueError("Inference evaluation method name wrong!")
